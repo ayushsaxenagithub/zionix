@@ -1,17 +1,27 @@
-import React, { useState } from "react";
+import  { useState } from "react";
 import axios from "axios";
 import PriceBreakDown from "./PriceBreakDown";
 
 const Home = () => {
   const [partNumber, setPartNumber] = useState("");
   const [quantity, setQuantity] = useState("");
-  const [MouserData, SetMouserData] = useState([]);
+  let [MouserData, SetMouserData] = useState([]);
+  let [data, SetData] = useState([]);
+  
+  function findPriceBreakIndex(quantity, priceBreaks) {
+    for (let i = 0; i < priceBreaks.length - 1; i++) {
+        if (priceBreaks[i].Quantity <= quantity && priceBreaks[i + 1].Quantity > quantity) {
+            return i;
+        }
+    }
+    return -1; 
+}
 
   const handleSubmit = async () => {
     const body = {
       SearchByPartRequest: {
         mouserPartNumber: partNumber,
-        partSearchOptions: quantity,
+        partSearchOptions: "string",
       },
     };
 
@@ -20,12 +30,16 @@ const Home = () => {
       body
     );
 
-    // const rutronikRes = await axios.get(
-    //   `https://www.rutronik24.com/api/search/?apikey=cc6qyfg2yfis&searchterm=CC0603KRX7R8BB105`
-    // );
-
     SetMouserData(response.data.SearchResults.Parts[0].PriceBreaks);
-    console.log(rutronikRes.data[0]);
+    const reqIndex = Number(findPriceBreakIndex(quantity, MouserData));
+    var itemData = MouserData[reqIndex];
+    var itemQuantity = Number(itemData.Quantity);
+    var itemPrice = Number(itemData.Price.replace(/[₹,]/g, ""));
+    const price = (itemPrice/itemQuantity) * quantity;
+    MouserData = MouserData.filter((item, index) => index === reqIndex);
+    MouserData[0].Quantity = quantity;
+    MouserData[0].Price = price
+    SetData(MouserData)
   };
 
   return (
@@ -53,7 +67,7 @@ const Home = () => {
         </div>
       </div>
       <div className="flex">
-        <PriceBreakDown title={"Mouser "} data={MouserData} />
+        <PriceBreakDown title={"Mouser "} data={data} />
         <PriceBreakDown title={"Rutronik "} />
         <PriceBreakDown title={"TME "} />
       </div>
